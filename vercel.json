@@ -18,10 +18,5 @@
   },
   "regions": [
     "sin1"
-  ],
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 10
-    }
-  }
+  ]
 }
