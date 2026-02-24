@@ -16,11 +16,6 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30
-    }
-  },
   "regions": [
     "sin1"
   ]
