@@ -3,7 +3,8 @@
  * Entry point untuk deployment di Vercel
  */
 
-require('dotenv').config();
+// dotenv tidak diperlukan di Vercel karena env vars dihandle otomatis
+// require('dotenv').config();
 
 const app = require('../server');
 

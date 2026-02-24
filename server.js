@@ -3,7 +3,10 @@
  * Jalankan dengan: node server.js
  */
 
-require('dotenv').config();
+// Load dotenv hanya jika bukan di production (Vercel)
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const express = require('express');
 const cors = require('cors');
