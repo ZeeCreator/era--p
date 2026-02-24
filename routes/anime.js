@@ -244,10 +244,12 @@ router.get('/episode/:slug', async (req, res, next) => {
 /**
  * GET /api/nonton/:slug
  * Ambil link streaming/nonton dari episode
+ * Query params: redirect (optional) - jika "true", akan redirect ke iframe URL
  */
 router.get('/nonton/:slug', async (req, res, next) => {
   try {
     const { slug } = req.params;
+    const { redirect } = req.query;
     const cacheKey = `nonton:${slug}`;
 
     // Validasi slug
@@ -262,14 +264,22 @@ router.get('/nonton/:slug', async (req, res, next) => {
     const cached = getCache(cacheKey);
     if (cached) {
       console.log(`[Cache Hit] nonton:${slug}`);
+      if (redirect === 'true' && cached.iframe) {
+        return res.redirect(cached.iframe);
+      }
       return successResponse(res, cached);
     }
 
     console.log(`[Scrape] nonton:${slug}`);
     const data = await scraper.scrapeNonton(slug);
-    
+
     // Simpan ke cache
     setCache(cacheKey, data, TTL.EPISODE);
+
+    // Jika redirect=true, redirect ke iframe URL
+    if (redirect === 'true' && data.iframe) {
+      return res.redirect(data.iframe);
+    }
 
     return successResponse(res, data);
   } catch (error) {
