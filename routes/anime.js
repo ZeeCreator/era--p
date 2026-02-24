@@ -33,7 +33,92 @@ router.get('/latest', async (req, res, next) => {
 
     console.log(`[Scrape] latest page ${page}`);
     const data = await scraper.scrapeLatest(page);
-    
+
+    // Simpan ke cache
+    setCache(cacheKey, data, TTL.LATEST);
+
+    return successResponse(res, data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/ongoing
+ * Ambil daftar anime ongoing dari /ongoing-anime/
+ * Query params: page (optional, default: 1)
+ */
+router.get('/ongoing', async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const cacheKey = `ongoing:${page}`;
+
+    // Cek cache
+    const cached = getCache(cacheKey);
+    if (cached) {
+      console.log(`[Cache Hit] ongoing:${page}`);
+      return successResponse(res, cached);
+    }
+
+    console.log(`[Scrape] ongoing page ${page}`);
+    const data = await scraper.scrapeOngoing(page);
+
+    // Simpan ke cache
+    setCache(cacheKey, data, TTL.LATEST);
+
+    return successResponse(res, data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/complete
+ * Ambil daftar anime complete dari /complete-anime/
+ * Query params: page (optional, default: 1)
+ */
+router.get('/complete', async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const cacheKey = `complete:${page}`;
+
+    // Cek cache
+    const cached = getCache(cacheKey);
+    if (cached) {
+      console.log(`[Cache Hit] complete:${page}`);
+      return successResponse(res, cached);
+    }
+
+    console.log(`[Scrape] complete page ${page}`);
+    const data = await scraper.scrapeComplete(page);
+
+    // Simpan ke cache
+    setCache(cacheKey, data, TTL.LATEST);
+
+    return successResponse(res, data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/schedule
+ * Ambil jadwal rilis anime dari /jadwal-rilis/
+ */
+router.get('/schedule', async (req, res, next) => {
+  try {
+    const cacheKey = 'schedule';
+
+    // Cek cache
+    const cached = getCache(cacheKey);
+    if (cached) {
+      console.log(`[Cache Hit] schedule`);
+      return successResponse(res, cached);
+    }
+
+    console.log(`[Scrape] schedule`);
+    const data = await scraper.scrapeSchedule();
+
     // Simpan ke cache
     setCache(cacheKey, data, TTL.LATEST);
 

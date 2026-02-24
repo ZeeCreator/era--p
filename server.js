@@ -80,7 +80,10 @@ app.get('/', (req, res) => {
     message: 'Otakudesu API - REST API scraper untuk Otakudesu.best',
     version: '1.0.0',
     endpoints: {
-      'GET /api/latest': 'Daftar anime ongoing terbaru',
+      'GET /api/latest': 'Daftar anime ongoing terbaru (struktur lama)',
+      'GET /api/ongoing': 'Daftar anime ongoing dari /ongoing-anime/',
+      'GET /api/complete': 'Daftar anime complete dari /complete-anime/',
+      'GET /api/schedule': 'Jadwal rilis anime dari /jadwal-rilis/',
       'GET /api/anime/:slug': 'Detail anime berdasarkan slug',
       'GET /api/anime/:slug/episodes': 'Daftar episode dari anime',
       'GET /api/episode/:slug': 'Detail episode berdasarkan slug',
@@ -123,10 +126,14 @@ if (require.main === module) {
     console.log('========================================');
     console.log('');
     console.log('Available endpoints:');
-    console.log('  GET /api/latest          - Anime ongoing terbaru');
+    console.log('  GET /api/latest          - Anime ongoing terbaru (struktur lama)');
+    console.log('  GET /api/ongoing         - Anime ongoing dari /ongoing-anime/');
+    console.log('  GET /api/complete        - Anime complete dari /complete-anime/');
+    console.log('  GET /api/schedule        - Jadwal rilis anime');
     console.log('  GET /api/anime/:slug     - Detail anime');
     console.log('  GET /api/anime/:slug/episodes - Daftar episode');
     console.log('  GET /api/episode/:slug   - Detail episode');
+    console.log('  GET /api/nonton/:slug    - Link streaming/nonton');
     console.log('  GET /api/search?q=...    - Cari anime');
     console.log('  GET /api/health          - Health check');
     console.log('');
