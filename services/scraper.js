@@ -659,6 +659,7 @@ async function scrapeNonton(slug) {
 
   // Cari semua mirror dari halaman episode
   const mirrors = [];
+  const downloads = [];
   const seenUrls = new Set();
 
   // Helper untuk menambahkan mirror dengan duplikat checking
@@ -667,9 +668,34 @@ async function scrapeNonton(slug) {
     if (seenUrls.has(url)) return;
     
     seenUrls.add(url);
+    
+    // Cek jika URL mengandung /safelink/ -> masukkan ke downloads
+    if (url.includes('/safelink/')) {
+      downloads.push({
+        quality: quality || 'Unknown',
+        name: name || 'Download',
+        url,
+        provider: provider || null,
+      });
+      return;
+    }
     mirrors.push({
       quality: quality || 'Unknown',
       name: name || 'Mirror',
+      url,
+      provider: provider || null,
+    });
+  };
+
+  // Helper untuk menambahkan download link dari safelink
+  const addDownload = (quality, name, url, provider = null) => {
+    if (!url || !url.startsWith('http')) return;
+    if (seenUrls.has(url)) return;
+
+    seenUrls.add(url);
+    downloads.push({
+      quality: quality || 'Unknown',
+      name: name || 'Download',
       url,
       provider: provider || null,
     });
@@ -704,6 +730,73 @@ async function scrapeNonton(slug) {
     if (hostname.includes('odfiles')) return 'ODFiles';
     return hostname.replace('www.', '');
   };
+
+  // Strategy 0: Scrape mirrorstream div (struktur baru dengan data-content)
+  // HTML: <div class="mirrorstream"><ul class="m360p"><span>Mirror 360p</span><li><a data-content="...">provider</a></li></ul>...</div>
+  $('div.mirrorstream').each((_, container) => {
+    try {
+      const $container = $(container);
+
+      // Cari setiap ul dengan class m360p, m480p, m720p, m1080p
+      $container.find('ul[class^="m"]').each((_, ul) => {
+        try {
+          const $ul = $(ul);
+          const ulClass = $ul.attr('class') || '';
+
+          // Extract quality dari class (m360p -> 360P)
+          let quality = 'Unknown';
+          const qualityMatch = ulClass.match(/m(360p|480p|720p|1080p)/i);
+          if (qualityMatch) {
+            quality = qualityMatch[1].toUpperCase();
+          }
+
+          // Get mirror label dari span
+          const mirrorLabel = $ul.find('span').first().text().trim();
+
+          // Get semua link mirror di dalam ul
+          $ul.find('li > a[data-content]').each((_, linkEl) => {
+            try {
+              const $link = $(linkEl);
+              const providerName = $link.text().trim().replace(/\s+/g, '');
+              const dataContent = $link.attr('data-content');
+
+              if (!dataContent) return;
+
+              // Cek jika ini safelink -> masukkan ke downloads
+              const providerLower = providerName.toLowerCase();
+              const isSafelink = providerLower.includes('safelink') || 
+                                 providerLower.includes('download') || 
+                                 dataContent.includes('safelink');
+
+              // Decode base64 data-content
+              try {
+                const decoded = Buffer.from(dataContent, 'base64').toString('utf-8');
+                const streamInfo = JSON.parse(decoded);
+
+                if (streamInfo.id && streamInfo.i !== undefined && streamInfo.q) {
+                  const streamUrl = BASE_URL + '/stream.php?id=' + streamInfo.id + '&i=' + streamInfo.i + '&q=' + streamInfo.q;
+                  
+                  if (isSafelink) {
+                    addDownload(quality, providerName, streamUrl, providerName);
+                  } else {
+                    addMirror(quality, providerName, streamUrl, providerName);
+                  }
+                }
+              } catch (e) {
+                console.log('[Warning] Failed to decode data-content: ' + dataContent);
+              }
+            } catch (e) {
+              // Skip
+            }
+          });
+        } catch (e) {
+          // Skip
+        }
+      });
+    } catch (e) {
+      // Skip
+    }
+  });
 
   // Strategy 1: Cari setiap section kualitas secara terpisah
   // Cari header/label kualitas (360p, 480p, 720p, 1080p)
@@ -962,6 +1055,8 @@ async function scrapeNonton(slug) {
     embedLinks,
     mirrors,
     totalMirrors: mirrors.length,
+    downloads,
+    totalDownloads: downloads.length,
   };
 }
 
