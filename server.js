@@ -84,6 +84,7 @@ app.get('/', (req, res) => {
       'GET /api/anime/:slug': 'Detail anime berdasarkan slug',
       'GET /api/anime/:slug/episodes': 'Daftar episode dari anime',
       'GET /api/episode/:slug': 'Detail episode berdasarkan slug',
+      'GET /api/nonton/:slug': 'Link streaming/nonton episode',
       'GET /api/search?q=': 'Cari anime berdasarkan judul',
       'GET /api/health': 'Health check endpoint',
     },

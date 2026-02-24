@@ -565,6 +565,181 @@ async function scrapeEpisodeDetail(slug) {
 }
 
 /**
+ * Scrape link nonton/streaming dari halaman episode
+ * Mengambil iframe src dari desustream dan mirror kualitas
+ */
+async function scrapeNonton(slug) {
+  const url = `/episode/${slug}/`;
+  const html = await fetchHtml(url);
+  const $ = parseHtml(html);
+
+  console.log(`[Scrape Nonton] ${url}`);
+
+  // Get title
+  let title = $('h1.jdlflm').text().trim() ||
+              $('.entry-title').text().trim() ||
+              $('h1').first().text().trim() ||
+              slug;
+
+  // Get iframe streaming (desustream)
+  const streamingUrl = [];
+  let mainIframe = null;
+
+  // Cari iframe dengan src (prioritaskan desustream)
+  $('iframe').each((_, el) => {
+    try {
+      const src = $(el).attr('src');
+      if (src && src.startsWith('http')) {
+        const iframeData = {
+          type: 'iframe',
+          url: src,
+        };
+        streamingUrl.push(iframeData);
+        
+        // Prioritaskan desustream sebagai main iframe
+        if (src.includes('desustream') || src.includes('dstream')) {
+          mainIframe = src;
+        }
+      }
+    } catch (e) {
+      // Skip
+    }
+  });
+
+  // Jika tidak ada mainIframe, gunakan iframe pertama
+  if (!mainIframe && streamingUrl.length > 0) {
+    mainIframe = streamingUrl[0].url;
+  }
+
+  // Cari link streaming dari embed container
+  const embedLinks = [];
+  $('[class*="embed"], [class*="streaming"], [class*="watch"]').find('a, iframe').each((_, el) => {
+    try {
+      const src = $(el).attr('href') || $(el).attr('src');
+      const name = $(el).text().trim() || 'Stream';
+
+      if (src && src.startsWith('http')) {
+        embedLinks.push({
+          name,
+          url: src,
+        });
+      }
+    } catch (e) {
+      // Skip
+    }
+  });
+
+  // Cari mirror kualitas dari halaman episode
+  const mirrors = [];
+
+  // Cari container download/streaming untuk mirror
+  $('.download-eps, .download, [class*="download"], [class*="dl-"]').each((_, el) => {
+    try {
+      const quality = $(el).find('strong').first().text().trim() ||
+                      $(el).find('b').first().text().trim() ||
+                      $(el).find('[class*="quality"]').first().text().trim() || 'Unknown';
+
+      $(el).find('li a, a[href*="drive"], a[href*="mediafire"], a[href*="zippy"], a[href*="stream"]').each((_, linkEl) => {
+        const linkText = $(linkEl).text().trim();
+        const linkUrl = $(linkEl).attr('href');
+
+        if (linkUrl && linkUrl.startsWith('http')) {
+          mirrors.push({
+            quality: quality || 'Unknown',
+            name: linkText || 'Mirror',
+            url: linkUrl,
+          });
+        }
+      });
+    } catch (e) {
+      // Skip
+    }
+  });
+
+  // Cari berdasarkan tombol/link streaming
+  $('a[href*="stream"], a[href*="watch"], a[href*="embed"], a[href*="desustream"], a[href*="mirror"]')
+    .each((_, el) => {
+      try {
+        const href = $(el).attr('href');
+        const text = $(el).text().trim();
+        const quality = text.match(/(360p|480p|720p|1080p|HD|SD)/i)?.[0] || 'Default';
+
+        if (href && href.startsWith('http')) {
+          // Cek duplikat
+          const exists = mirrors.some(m => m.url === href);
+          if (!exists) {
+            mirrors.push({
+              quality,
+              name: text || 'Mirror',
+              url: href,
+            });
+          }
+        }
+      } catch (e) {
+        // Skip
+      }
+    });
+
+  // Cari berdasarkan pattern tombol streaming
+  $('.btn-streaming, [class*="btn"] a[href*="http"], a[class*="stream"]').each((_, el) => {
+    try {
+      const href = $(el).attr('href') || $(el).parent('a').attr('href');
+      const text = $(el).text().trim() || $(el).parent('a').text().trim();
+
+      if (href && href.startsWith('http')) {
+        const quality = text.match(/(360p|480p|720p|1080p|HD|SD)/i)?.[0] || 'Default';
+
+        const exists = mirrors.some(m => m.url === href);
+        if (!exists) {
+          mirrors.push({
+            quality,
+            name: text || 'Mirror',
+            url: href,
+          });
+        }
+      }
+    } catch (e) {
+      // Skip
+    }
+  });
+
+  // Fallback: cari semua link yang mengandung kata streaming
+  if (mirrors.length === 0) {
+    $('a').each((_, el) => {
+      try {
+        const href = $(el).attr('href');
+        const text = $(el).text().trim().toLowerCase();
+
+        if (href && href.startsWith('http') &&
+            (text.includes('stream') || text.includes('watch') || text.includes('mirror'))) {
+          const quality = text.match(/(360p|480p|720p|1080p|hd|sd)/i)?.[0]?.toUpperCase() || 'Default';
+
+          const exists = mirrors.some(m => m.url === href);
+          if (!exists) {
+            mirrors.push({
+              quality,
+              name: $(el).text().trim() || 'Mirror',
+              url: href,
+            });
+          }
+        }
+      } catch (e) {
+        // Skip
+      }
+    });
+  }
+
+  return {
+    title,
+    slug,
+    iframe: mainIframe,
+    iframes: streamingUrl,
+    embedLinks,
+    mirrors,
+  };
+}
+
+/**
  * Scrape hasil pencarian
  */
 async function scrapeSearch(query, page = 1) {
@@ -678,5 +853,6 @@ module.exports = {
   scrapeLatest,
   scrapeAnimeDetail,
   scrapeEpisodeDetail,
+  scrapeNonton,
   scrapeSearch,
 };

@@ -157,6 +157,42 @@ router.get('/episode/:slug', async (req, res, next) => {
 });
 
 /**
+ * GET /api/nonton/:slug
+ * Ambil link streaming/nonton dari episode
+ */
+router.get('/nonton/:slug', async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    const cacheKey = `nonton:${slug}`;
+
+    // Validasi slug
+    if (!slug || slug.trim() === '') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Slug tidak boleh kosong',
+      });
+    }
+
+    // Cek cache
+    const cached = getCache(cacheKey);
+    if (cached) {
+      console.log(`[Cache Hit] nonton:${slug}`);
+      return successResponse(res, cached);
+    }
+
+    console.log(`[Scrape] nonton:${slug}`);
+    const data = await scraper.scrapeNonton(slug);
+    
+    // Simpan ke cache
+    setCache(cacheKey, data, TTL.EPISODE);
+
+    return successResponse(res, data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/search
  * Cari anime berdasarkan query
  * Query params: q (required), page (optional)

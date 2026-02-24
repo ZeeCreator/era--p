@@ -220,7 +220,43 @@ GET /api/episode/olcn-episode-12-sub-indo
 }
 ```
 
-### 5. Search Anime
+### 5. Get Link Nonton/Streaming
+
+```http
+GET /api/nonton/:slug
+```
+
+**Contoh:**
+```http
+GET /api/nonton/kmygold-s5-episode-8-sub-indo
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "title": "Golden Kamuy Season 5 Episode 8 Sub Indo",
+    "slug": "kmygold-s5-episode-8-sub-indo",
+    "iframe": "https://desustream.info/dstream/ondesu/v5/index.php?id=...",
+    "iframes": [
+      {
+        "type": "iframe",
+        "url": "https://desustream.info/dstream/ondesu/v5/index.php?id=..."
+      }
+    ],
+    "embedLinks": [
+      {
+        "name": "Stream",
+        "url": "https://desustream.info/dstream/ondesu/v5/index.php?id=..."
+      }
+    ],
+    "mirrors": []
+  }
+}
+```
+
+### 6. Search Anime
 
 ```http
 GET /api/search?q={query}
